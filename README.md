@@ -7,7 +7,7 @@ Terraform allows to provision the most simple infrastructure in Yandex Cloud:
 - Instance for Site-to-Site VPN (Strongswan)
 
 ### Networking diagram
-![networking diagram](networking.jpg)
+![networking diagram](networking.png)
 
 ## level 1 (network infrastructure):
 - VPC
