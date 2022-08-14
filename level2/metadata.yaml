@@ -1,0 +1,63 @@
+#cloud-config
+users:
+  - name: artem
+    groups: sudo
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDjyH+WKY55QUvG5Wz6EbT7bFzRv2FetYWNpWTzPL2xOjhiJNLYBeKVQndGF3LzJ+ZQqZxKezqNCytbR20fe8aN+SIEjyeYAWQSG3DXOHs3HLr+dkrj9cQszeTISfTAwfj7dB+rkcr/Nd9N7MmLY8BHfYZM+U5KhI5i8Qfqg0nA4yVY1PXeIcgn/ouO7tbXzoSdaXJio9b5GA5E1GP4WcWDrFQbnVorvmFKvHgqh+v2fZ/Gs6ZVUlLdSWTf0ViV45Pp1m4MOCNihyGucoTcbfVad9ydElu7tvwoyNw2LEJ8WFWBz8kTf0sFOtbFMl5WauMgwDg4RyNaVe6Nc0fBFeYkRIPJovOBQdTbctMo5uaqogef9y9dHwWqErLzjbIG4Uo0wyTcuXMrq9BcXYy0q39sFpbWgzH314WO0wAUpIipmwKfo0t1kE5u6OCgCiw/mdJBI4Vavr1tRNl8w3mD2kgpltBlatY4XRlxNa60BpzTVH+gV0UimWKHFgZqyFYa4gmsU0bAQWSnwF+OtVWX+n5vBIndl+Eq/f7VdP7zrTf6teaniSv0/D8DCTBVRTtObAxFJuIyqDL0GhtSqcdyH/X+rhJP7rGCiZH2JqIrJ+M8sHNslYdYaUBh5hAXRdtOfjWqsLMgy3vgXT/f4XaEYz4RuZiaVjdh89UOBK/MDMECTw== utkin@posteo.net
+package_upgrade: true
+write_files:
+  - path: /home/artem/initial_config.sh
+    permissions: 0777
+    owner: artem
+    content: |
+      #!/usr/bin/env bash
+      set -e
+      sudo /bin/su -c 'echo "
+      net.ipv4.ip_forward = 1
+      net.ipv6.conf.all.forwarding = 1
+      net.ipv4.conf.all.accept_redirects = 0
+      net.ipv4.conf.all.send_redirects = 0
+      " >> /etc/sysctl.conf'
+      sudo sysctl -p
+      sudo cp /etc/ipsec.conf /etc/ipsec.conf.orig
+      sudo systemctl enable --now strongswan.service
+      sudo /bin/su -c 'echo "
+      config setup
+        charondebug="all"
+        uniqueids=yes
+      conn vpn-to-asa
+        authby=secret
+        left=%defaultroute
+        leftid=172.111.111.111
+        leftsubnet=10.8.0.0/23
+        right=185.222.222.222
+        rightid=185.222.222.222
+        rightsubnet=172.16.0.0/16
+        ike=des-sha1-modp1536
+        esp=des-sha1
+        keyingtries=%forever
+        leftauth=psk
+        rightauth=psk
+        keyexchange=ikev1
+        ikelifetime=8h
+        lifetime=8h
+        dpddelay=30
+        dpdtimeout=120
+        dpdaction=restart
+        auto=start
+      " > /etc/ipsec.conf'
+      sudo /bin/su -c 'echo 172.111.111.111 185.222.222.222 : PSK \"jkl111jkl111\" > /etc/ipsec.secrets'
+      sudo ip addr add 10.8.1.254/24 dev lo
+      sudo ipsec restart
+      sudo ip xfrm policy
+      sudo ip route list table 220 172.16.0.0/16 via 172.111.111.111 dev eth0 proto static src 10.8.1.254
+      sudo iptables -S
+      sudo iptables -t nat -F
+      EOF
+packages:
+  - strongswan
+runcmd:
+  - bash /home/artem/initial_config.sh
+
