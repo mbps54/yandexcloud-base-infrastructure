@@ -7,7 +7,7 @@ locals {
   private_subnets_ids = data.terraform_remote_state.level1.outputs.private_subnets_ids
 }
 
-#resource "yandex_vpc_security_group" "sg-lab" {
+#resource "yandex_vpc_security_group" "app1" {
 #  name       = "Lab security group"
 #  network_id = local.vpc_id
 #
@@ -34,16 +34,49 @@ locals {
 #  }
 #
 #  labels = {
-#    my-label = "sg-lab"
+#    my-label = "sg-app1"
 #  }
 #}
 
-data "yandex_compute_image" "ubuntu_image" {
+data "yandex_compute_image" "debian_image" {
   family = "debian-9"
 }
 
-resource "yandex_compute_instance" "lab" {
-  name        = "lab"
+resource "yandex_compute_instance" "vpn" {
+  name        = "vpn"
+  platform_id = "standard-v2"
+  zone        = "ru-central1-b"
+
+  resources {
+    cores  = 2
+    memory = 1
+    core_fraction = 5
+  }
+
+  scheduling_policy {
+    preemptible = true
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.debian_image.id
+    }
+  }
+
+  network_interface {
+    subnet_id          = local.public_subnets_ids[1]
+    nat                = true
+    #security_group_ids = [yandex_vpc_security_group.sg-vpn.id]
+  }
+
+  metadata = {
+    serial-port-enable = 1
+    user-data = "${file("./metadata_vpn.yaml")}"
+  }
+}
+
+resource "yandex_compute_instance" "app1" {
+  name        = "app1"
   platform_id = "standard-v2"
   zone        = "ru-central1-a"
 
@@ -59,18 +92,18 @@ resource "yandex_compute_instance" "lab" {
 
   boot_disk {
     initialize_params {
-      image_id = data.yandex_compute_image.ubuntu_image.id
+      image_id = data.yandex_compute_image.debian_image.id
     }
   }
 
   network_interface {
-    subnet_id          = local.public_subnets_ids[0]
+    subnet_id          = local.private_subnets_ids[0]
     nat                = true
-    #security_group_ids = [yandex_vpc_security_group.sg-lab.id]
+    #security_group_ids = [yandex_vpc_security_group.sg-app1.id]
   }
 
   metadata = {
     serial-port-enable = 1
-    user-data = "${file("./metadata.yaml")}"
+    user-data = "${file("./metadata_app1.yaml")}"
   }
 }

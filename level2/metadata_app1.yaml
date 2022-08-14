@@ -1,0 +1,23 @@
+#cloud-config
+users:
+  - name: artem
+    groups: sudo
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDjyH+WKY55QUvG5Wz6EbT7bFzRv2FetYWNpWTzPL2xOjhiJNLYBeKVQndGF3LzJ+ZQqZxKezqNCytbR20fe8aN+SIEjyeYAWQSG3DXOHs3HLr+dkrj9cQszeTISfTAwfj7dB+rkcr/Nd9N7MmLY8BHfYZM+U5KhI5i8Qfqg0nA4yVY1PXeIcgn/ouO7tbXzoSdaXJio9b5GA5E1GP4WcWDrFQbnVorvmFKvHgqh+v2fZ/Gs6ZVUlLdSWTf0ViV45Pp1m4MOCNihyGucoTcbfVad9ydElu7tvwoyNw2LEJ8WFWBz8kTf0sFOtbFMl5WauMgwDg4RyNaVe6Nc0fBFeYkRIPJovOBQdTbctMo5uaqogef9y9dHwWqErLzjbIG4Uo0wyTcuXMrq9BcXYy0q39sFpbWgzH314WO0wAUpIipmwKfo0t1kE5u6OCgCiw/mdJBI4Vavr1tRNl8w3mD2kgpltBlatY4XRlxNa60BpzTVH+gV0UimWKHFgZqyFYa4gmsU0bAQWSnwF+OtVWX+n5vBIndl+Eq/f7VdP7zrTf6teaniSv0/D8DCTBVRTtObAxFJuIyqDL0GhtSqcdyH/X+rhJP7rGCiZH2JqIrJ+M8sHNslYdYaUBh5hAXRdtOfjWqsLMgy3vgXT/f4XaEYz4RuZiaVjdh89UOBK/MDMECTw== utkin@posteo.net
+package_upgrade: true
+write_files:
+  - path: /home/artem/initial_config.sh
+    permissions: 0777
+    owner: artem
+    content: |
+      #!/usr/bin/env bash
+      set -e
+      sudo systemctl enable --now nginx
+      EOF
+packages:
+  - nginx
+runcmd:
+  - bash /home/artem/initial_config.sh
+
